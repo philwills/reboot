@@ -45,6 +45,23 @@ trait UrlVerbs extends RequestVerbs {
   }
 }
 
+@annotation.implicitNotFound("${A} has no defined transalation to a query parameter")
+trait AsQueryParam[A]{
+  def asQueryParam(a:A):String
+}
+
+object AsQueryParam {
+  def from[A](implicit a:AsQueryParam[A]) = a
+
+  def apply[A](f:A => String):AsQueryParam[A] = new AsQueryParam[A]{
+    def asQueryParam(a: A) = f(a)
+  }
+
+  implicit val string = apply[String](identity)
+  implicit val int = apply[Int](_.toString)
+  implicit val long = apply[Long](_.toString)
+}
+
 trait ParamVerbs extends RequestVerbs {
   def << (params: Traversable[(String,String)]) =
     (subject.setMethod("POST") /: params) {
@@ -52,18 +69,18 @@ trait ParamVerbs extends RequestVerbs {
         s.addParameter(key, value)
     }
   def <<? (params: Traversable[(String,String)]) = withQueryParams(params, "GET")
-  def withQueryParams(params: Traversable[(String, String)], method: String) =
-    (subject.setMethod(method) /: params) {
+  def withQueryParams[T: AsQueryParam](params: Traversable[(String, T)], method: String) =
+    (subject.setMethod(method) /: (params map {case (a,b) => (a,  AsQueryParam.from[T].asQueryParam(b))})) {
       case (s, (key, value)) =>
         s.addQueryParameter(key, value)
     }
 
-  def HEAD (params: (String, String)*) = withQueryParams(params.toTraversable, "HEAD")
-  def GET (params: (String, String)*) = <<?(params.toTraversable)
-  def POST (params: (String, String)*) = <<(params.toTraversable)
-  def PUT (params: (String, String)*) = withQueryParams(params.toTraversable, "PUT")
-  def DELETE (params: (String, String)*) = withQueryParams(params.toTraversable, "DELETE")
-  def PATCH (params: (String, String)*) = withQueryParams(params.toTraversable, "PATCH")
+  def HEAD[T: AsQueryParam]  (params: (String, T)*) = withQueryParams(params.toTraversable, "HEAD")
+  def GET[T: AsQueryParam]  (params: (String, T)*) = withQueryParams(params.toTraversable, "GET")
+  def POST[T: AsQueryParam] (params: (String, T)*) = <<(params map {case (a,b) => (a,  AsQueryParam.from[T].asQueryParam(b))})
+  def PUT[T: AsQueryParam]  (params: (String, T)*) = withQueryParams(params.toTraversable, "PUT")
+  def DELETE[T: AsQueryParam]  (params: (String, T)*) = withQueryParams(params.toTraversable, "DELETE")
+  def PATCH[T: AsQueryParam]  (params: (String, T)*) = withQueryParams(params.toTraversable, "PATCH")
 }
 
 trait AuthVerbs extends RequestVerbs {

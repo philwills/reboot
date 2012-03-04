@@ -1,6 +1,8 @@
 package dispatch.spec
 
 import org.scalacheck._
+import java.util.Date
+import java.text.SimpleDateFormat
 
 object AlphaParamsSpecification
   extends Properties("Basic")
@@ -72,6 +74,25 @@ object AlphaParamsSpecification
         (localhost / "echo" PATCH ("echo" -> sample)) > As.string
       )
       res() == ("PATCH" + sample)
+  }
+
+  property("Number serialization") = forAll(Gen.choose(0, Long.MaxValue)) {
+    (sample: Long) =>
+      val res = Http(
+        (localhost / "echo" POST ("echo" -> sample)) > As.string
+      )
+      res() == ("POST" + sample)
+  }
+
+  property("Custom serialization") = forAll(Gen.choose(0, Long.MaxValue)) {
+    (sample: Long) =>
+      val sampleDate = new Date(sample)
+      val fmt = new SimpleDateFormat("yyyy:HH:mm:ss")
+      implicit val date = AsQueryParam[Date](fmt.format(_))
+      val res = Http(
+        (localhost / "echo" POST ("echo" -> sampleDate)) > As.string
+      )
+      res() == ("POST" + fmt.format(sampleDate))
   }
 
   // TODO: Work out sensible testing approach for GET, POST, et with no parameters
