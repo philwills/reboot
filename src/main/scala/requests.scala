@@ -68,7 +68,13 @@ trait ParamVerbs extends RequestVerbs {
       case (s, (key, value)) =>
         s.addParameter(key, value)
     }
-  def <<? (params: Traversable[(String,String)]) = withQueryParams(params, "GET")
+
+  def <<? (params: Traversable[(String,String)]) =
+    (subject /: params) {
+      case (s, (key, value)) =>
+        s.addQueryParameter(key, value)
+    }
+
   def withQueryParams[T: AsQueryParam](params: Traversable[(String, T)], method: String) =
     (subject.setMethod(method) /: (params map {case (a,b) => (a,  AsQueryParam.from[T].asQueryParam(b))})) {
       case (s, (key, value)) =>
