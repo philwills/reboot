@@ -51,7 +51,12 @@ trait ParamVerbs extends RequestVerbs {
       case (s, (key, value)) =>
         s.addParameter(key, value)
     }
-  def <<? (params: Traversable[(String,String)]) = withQueryParams(params, "GET")
+  def <<? (params: Traversable[(String,String)]) =
+    (subject /: params) {
+      case (s, (key, value)) =>
+        s.addQueryParameter(key, value)
+    }
+
   def withQueryParams(params: Traversable[(String, String)], method: String) =
     (subject.setMethod(method) /: params) {
       case (s, (key, value)) =>
@@ -59,7 +64,7 @@ trait ParamVerbs extends RequestVerbs {
     }
 
   def HEAD (params: (String, String)*) = withQueryParams(params.toTraversable, "HEAD")
-  def GET (params: (String, String)*) = <<?(params.toTraversable)
+  def GET (params: (String, String)*) = withQueryParams(params.toTraversable, "GET")
   def POST (params: (String, String)*) = <<(params.toTraversable)
   def PUT (params: (String, String)*) = withQueryParams(params.toTraversable, "PUT")
   def DELETE (params: (String, String)*) = withQueryParams(params.toTraversable, "DELETE")
