@@ -1,6 +1,6 @@
 import sbt._
 
-object Builds extends sbt.Build {
+object FBuilds extends sbt.Build {
   import Keys._
 
   /** Aggregates tasks for all projects */
